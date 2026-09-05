@@ -1,0 +1,43 @@
+{
+  "name": "ticketing-platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "3 REST services + 1 GraphQL gateway (in-memory) for a ticketing platform",
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:all": "node scripts/dev-all.mjs",
+    "start:catalog": "tsx services/catalog/src/server.ts",
+    "start:inventory": "tsx services/inventory/src/server.ts",
+    "start:orders": "tsx services/orders/src/server.ts",
+    "start:gateway": "tsx services/gateway/src/server.ts",
+    "start:docs": "tsx services/docs/src/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json",
+    "e2e": "node scripts/e2e/all.mjs",
+    "e2e:1": "tsx scripts/e2e/scenario-1-event-detail.ts",
+    "e2e:2": "tsx scripts/e2e/scenario-2-browse-list.ts",
+    "e2e:3": "tsx scripts/e2e/scenario-3-hold-tickets.ts",
+    "e2e:4": "tsx scripts/e2e/scenario-4-release-tickets.ts",
+    "e2e:5": "tsx scripts/e2e/scenario-5-nightly-sync.ts",
+    "e2e:6": "tsx scripts/e2e/scenario-6-live-availability.ts"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.8",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
