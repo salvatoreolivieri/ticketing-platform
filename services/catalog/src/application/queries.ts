@@ -77,6 +77,7 @@ export function listEvents(
   query: Record<string, unknown>,
 ): { rows: EventListRowDto[]; pagination: Pagination } {
   const { page, limit, offset } = parsePagination(query, {
+    defaultPage: 1,
     defaultLimit: 20,
     maxLimit: 100,
   });

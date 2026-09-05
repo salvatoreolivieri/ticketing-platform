@@ -46,7 +46,7 @@ export const typeDefs = /* GraphQL */ `
 
   type Query {
     event(id: ID!): Event
-    events(page: Int!, limit: Int!, city: String, dateRange: String): EventList!
+    events(page: Int, limit: Int, city: String, dateRange: String): EventList!
   }
 
   type Mutation {
