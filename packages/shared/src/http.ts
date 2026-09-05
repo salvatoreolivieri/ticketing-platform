@@ -9,6 +9,20 @@ export const asyncHandler =
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
+/**
+ * Logs every incoming request as `[service] → METHOD url`. Mount first so the
+ * line prints even for requests that 404. Silent under NODE_ENV=test to keep
+ * the Vitest output clean.
+ */
+export function requestLogger(service: string): RequestHandler {
+  return (req, _res, next) => {
+    if (process.env.NODE_ENV !== "test") {
+      console.log(`[${service}] → ${req.method} ${req.originalUrl}`);
+    }
+    next();
+  };
+}
+
 /** Maps AppError -> its status envelope; anything else -> 500. Mount last. */
 export function errorMiddleware(
   err: unknown,
