@@ -1,3 +1,4 @@
+import { recordRead } from "@ticketing/shared";
 import type {
   Catalog,
   EventRecord,
@@ -37,23 +38,28 @@ export class InMemoryCatalogRepository implements CatalogRepository {
   }
 
   getEvent(id: string): EventRecord | undefined {
+    recordRead("getEvent");
     return this.events.get(id);
   }
 
   getVenue(id: string): VenueRecord | undefined {
+    recordRead("getVenue");
     return this.venues.get(id);
   }
 
   getOrganizer(id: string): OrganizerRecord | undefined {
+    recordRead("getOrganizer");
     return this.organizers.get(id);
   }
 
   getTiersForEvent(eventId: string): TierRecord[] | undefined {
+    recordRead("getTiersForEvent");
     if (!this.events.has(eventId)) return undefined;
     return this.tiersByEvent.get(eventId) ?? [];
   }
 
   allEvents(): EventRecord[] {
+    recordRead("allEvents");
     return this.eventOrder.map((id) => this.events.get(id)!);
   }
 }

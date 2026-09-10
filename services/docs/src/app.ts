@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import swaggerUi from "swagger-ui-express";
+import { requestLogger } from "@ticketing/shared";
 import { buildOpenApiSpec, type ServiceBaseUrls } from "./openapi";
 
 /**
@@ -12,6 +13,7 @@ export function createDocsApp(bases: ServiceBaseUrls): Express {
   const spec = buildOpenApiSpec(bases);
 
   const app = express();
+  app.use(requestLogger("docs")); // print every incoming request
 
   app.get("/openapi.json", (_req, res) => res.json(spec));
 

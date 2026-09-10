@@ -1,3 +1,5 @@
+import { recordRead } from "@ticketing/shared";
+
 export type Availability = {
   tierId: string;
   eventId: string;
@@ -22,6 +24,7 @@ export class InMemoryInventoryStore {
   }
 
   get(tierId: string): Availability | undefined {
+    recordRead("get");
     return this.availability.get(tierId);
   }
 

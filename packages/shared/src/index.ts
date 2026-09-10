@@ -1,6 +1,7 @@
 export * from "./envelope";
 export * from "./errors";
 export * from "./http";
+export * from "./db-log";
 export * from "./pagination";
 export * from "./validate";
 export * from "./event-bus";

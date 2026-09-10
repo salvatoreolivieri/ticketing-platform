@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/server.ts",
   "dependencies": {
+    "@ticketing/shared": "*",
     "express": "^4.19.2",
     "swagger-ui-express": "^5.0.1"
   }

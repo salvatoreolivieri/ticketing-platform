@@ -1,3 +1,4 @@
+import { recordRead } from "@ticketing/shared";
 import type { OrderRecord, TicketRecord } from "@ticketing/shared";
 
 /** Owns orders and tickets. */
@@ -13,6 +14,7 @@ export class InMemoryOrdersStore {
   }
 
   list(): OrderRecord[] {
+    recordRead("list");
     return this.orders;
   }
 
@@ -26,6 +28,7 @@ export class InMemoryOrdersStore {
   }
 
   ticketCount(): number {
+    recordRead("ticketCount");
     return this.tickets.length;
   }
 }

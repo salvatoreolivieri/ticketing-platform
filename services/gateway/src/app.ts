@@ -3,6 +3,7 @@ import cors from "cors";
 import { buildSchema } from "graphql";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
+import { requestLogger } from "@ticketing/shared";
 import { typeDefs } from "./schema";
 import { makeRoot, type GatewayClients } from "./resolvers";
 
@@ -15,7 +16,9 @@ import { makeRoot, type GatewayClients } from "./resolvers";
  *
  * Async because Apollo Server must be `start()`-ed before its middleware mounts.
  */
-export async function createGatewayApp(clients: GatewayClients): Promise<Express> {
+export async function createGatewayApp(
+  clients: GatewayClients,
+): Promise<Express> {
   const schema = buildSchema(typeDefs);
   const rootValue = makeRoot(clients);
 
@@ -23,6 +26,7 @@ export async function createGatewayApp(clients: GatewayClients): Promise<Express
   await server.start();
 
   const app = express();
+  app.use(requestLogger("gateway")); // print every incoming request
   app.use("/graphql", cors(), express.json(), expressMiddleware(server));
   return app;
 }
