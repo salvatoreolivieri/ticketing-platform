@@ -22,7 +22,7 @@ if (await preflight([
   const CITY = process.env.E2E_CITY ?? "London";
   const RANGE = process.env.E2E_DATE_RANGE ?? "2026-01-01..2026-12-31";
 
-  const listQuery = `query($p: Int!, $l: Int!, $c: String, $d: String) {
+  const listQuery = `query($p: Int!, $l: Int, $c: String, $d: String) {
     events(page: $p, limit: $l, city: $c, dateRange: $d) {
       events { id title startsAt lowestTierPrice }
     }

@@ -20,12 +20,8 @@ export function parsePagination(
     defaultPage,
   }: { defaultPage: number; defaultLimit: number; maxLimit: number },
 ): PageParams {
-  const page = parseIntParam(defaultPage ?? query.page, "page", defaultPage);
-  const limit = parseIntParam(
-    defaultLimit ?? query.limit,
-    "limit",
-    defaultLimit,
-  );
+  const page = parseIntParam(query.page, "page", defaultPage);
+  const limit = parseIntParam(query.limit, "limit", defaultLimit);
 
   if (page < 1) throw new ValidationError("page must be >= 1", "page");
   if (limit < 1) throw new ValidationError("limit must be >= 1", "limit");
