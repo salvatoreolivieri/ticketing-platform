@@ -10,9 +10,9 @@ export function inventoryRouter(deps: InventoryDeps): Router {
   // Attendee holds tickets.
   r.post(
     "/reserves/:tierId",
-    asyncHandler((req, res) => {
+    asyncHandler(async (req, res) => {
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const result = reserveTickets(deps, req.params.tierId, body.quantity);
+      const result = await reserveTickets(deps, req.params.tierId, body.quantity);
       res.status(201).json(created(result));
     }),
   );
@@ -20,8 +20,8 @@ export function inventoryRouter(deps: InventoryDeps): Router {
   // Live availability.
   r.patch(
     "/inventory/:tierId",
-    asyncHandler((req, res) => {
-      adjustInventory(deps, req.params.tierId, (req.body ?? {}) as Record<string, unknown>);
+    asyncHandler(async (req, res) => {
+      await adjustInventory(deps, req.params.tierId, (req.body ?? {}) as Record<string, unknown>);
       res.status(204).send();
     }),
   );

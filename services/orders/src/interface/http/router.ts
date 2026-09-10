@@ -10,8 +10,11 @@ export function ordersRouter(deps: OrdersDeps): Router {
   // Partner nightly sync.
   r.get(
     "/orders",
-    asyncHandler((req, res) => {
-      const { rows, pagination } = listOrders(deps.store, req.query as Record<string, unknown>);
+    asyncHandler(async (req, res) => {
+      const { rows, pagination } = await listOrders(
+        deps.store,
+        req.query as Record<string, unknown>,
+      );
       res.status(200).json(paginated(rows, pagination));
     }),
   );

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { EventBus, type OrderRecord } from "@ticketing/shared";
 import { createOrdersApp } from "../src/app";
-import { InMemoryOrdersStore } from "../src/infrastructure/in-memory-store";
+import { InMemoryOrdersStore } from "./in-memory-store";
 import type { InventoryClient } from "../src/application/ports";
 import type { OrdersDeps } from "../src/composition/container";
 
@@ -86,36 +86,36 @@ describe("Orders", () => {
     expect(res.body.data.eventId).toBe("evt_00001");
     expect(res.body.data.totalCents).toBe(10000);
     // event-driven projection created the ticket
-    expect(deps.store.ticketCount()).toBe(1);
+    expect(await deps.store.ticketCount()).toBe(1);
   });
 
   it("ORD-INT-002: inventory conflict -> 409, no order created", async () => {
     const conflict = build({ reserve: async () => ({ status: 409 }) });
-    const before = conflict.store.list().length;
+    const before = (await conflict.store.list()).length;
     const res = await request(createOrdersApp(conflict))
       .post("/api/v1/orders")
       .send({ tierId: "tier_00001", quantity: 100, buyerEmail: "a@b.com" });
     expect(res.status).toBe(409);
-    expect(conflict.store.list().length).toBe(before);
+    expect((await conflict.store.list()).length).toBe(before);
   });
 
   it("ORD-INT-003: inventory tier not found -> 404, no order created", async () => {
     const notFound = build({ reserve: async () => ({ status: 404 }) });
-    const before = notFound.store.list().length;
+    const before = (await notFound.store.list()).length;
     const res = await request(createOrdersApp(notFound))
       .post("/api/v1/orders")
       .send({ tierId: "tier_99999", quantity: 2, buyerEmail: "a@b.com" });
     expect(res.status).toBe(404);
-    expect(notFound.store.list().length).toBe(before);
+    expect((await notFound.store.list()).length).toBe(before);
   });
 
   it("ORD-INT-004: inventory unavailable -> 500, no order created", async () => {
     const down = build({ reserve: async () => ({ status: 500 }) });
-    const before = down.store.list().length;
+    const before = (await down.store.list()).length;
     const res = await request(createOrdersApp(down))
       .post("/api/v1/orders")
       .send({ tierId: "tier_00001", quantity: 2, buyerEmail: "a@b.com" });
     expect(res.status).toBe(500);
-    expect(down.store.list().length).toBe(before);
+    expect((await down.store.list()).length).toBe(before);
   });
 });

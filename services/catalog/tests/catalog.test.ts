@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import type { Catalog } from "@ticketing/shared";
 import { createCatalogApp } from "../src/app";
-import {
-  InMemoryCatalogRepository,
-  type CatalogRepository,
-} from "../src/infrastructure/in-memory-repository";
+import { InMemoryCatalogRepository } from "./in-memory-repository";
+import type { CatalogRepository } from "../src/infrastructure/repository";
 
 const fixture: Catalog = {
   organizers: [{ id: "org_00001", name: "Org One" }],
@@ -67,14 +65,14 @@ describe("Catalog", () => {
 
   it("CAT-003: catalog service failure -> 500", async () => {
     const throwing: CatalogRepository = {
-      getEvent() {
+      getEvent: async () => {
         throw new Error("db down");
       },
-      getVenue: () => undefined,
-      getOrganizer: () => undefined,
-      getTiersForEvent: () => undefined,
-      getTiersForEvents: () => new Map(),
-      allEvents: () => [],
+      getVenue: async () => undefined,
+      getOrganizer: async () => undefined,
+      getTiersForEvent: async () => undefined,
+      getTiersForEvents: async () => new Map(),
+      allEvents: async () => [],
     };
     const res = await request(createCatalogApp(throwing)).get("/api/v1/events/evt_00001");
     expect(res.status).toBe(500);

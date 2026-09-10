@@ -7,7 +7,7 @@ import {
   requestLogger,
 } from "@ticketing/shared";
 import { catalogRouter } from "./interface/http/router";
-import type { CatalogRepository } from "./infrastructure/in-memory-repository";
+import type { CatalogRepository } from "./infrastructure/repository";
 
 export function createCatalogApp(repo: CatalogRepository): Express {
   const app = express();

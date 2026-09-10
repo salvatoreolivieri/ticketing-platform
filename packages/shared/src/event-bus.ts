@@ -1,6 +1,10 @@
-/** Minimal synchronous in-process pub/sub. One bus per service (intra-service only). */
+/** Minimal in-process pub/sub. One bus per service (intra-service only).
+ *
+ * `publish` awaits each handler in turn, so a handler that persists a
+ * projection (e.g. OrderPlaced -> write a ticket row) completes before the
+ * command that published the event returns. Handlers may be sync or async. */
 export type DomainEvent = { type: string; [key: string]: unknown };
-export type EventHandler = (event: DomainEvent) => void;
+export type EventHandler = (event: DomainEvent) => void | Promise<void>;
 
 export class EventBus {
   private readonly handlers = new Map<string, EventHandler[]>();
@@ -11,11 +15,11 @@ export class EventBus {
     this.handlers.set(type, list);
   }
 
-  publish(event: DomainEvent): void {
-    for (const handler of this.handlers.get(event.type) ?? []) handler(event);
+  async publish(event: DomainEvent): Promise<void> {
+    for (const handler of this.handlers.get(event.type) ?? []) await handler(event);
   }
 
-  publishAll(events: DomainEvent[]): void {
-    for (const event of events) this.publish(event);
+  async publishAll(events: DomainEvent[]): Promise<void> {
+    for (const event of events) await this.publish(event);
   }
 }

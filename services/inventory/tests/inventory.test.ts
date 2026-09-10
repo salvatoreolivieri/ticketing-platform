@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { EventBus } from "@ticketing/shared";
 import { createInventoryApp } from "../src/app";
-import { InMemoryInventoryStore } from "../src/infrastructure/in-memory-store";
+import { InMemoryInventoryStore } from "./in-memory-store";
 import type { InventoryDeps } from "../src/composition/container";
 
 let deps: InventoryDeps;

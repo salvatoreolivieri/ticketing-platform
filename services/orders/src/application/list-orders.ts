@@ -1,14 +1,18 @@
 import { buildPagination, parsePagination } from "@ticketing/shared";
 import type { OrderRecord, Pagination } from "@ticketing/shared";
-import type { InMemoryOrdersStore } from "../infrastructure/in-memory-store";
+import type { OrdersStore } from "../infrastructure/store";
 
-export function listOrders(
-  store: InMemoryOrdersStore,
+export async function listOrders(
+  store: OrdersStore,
   query: Record<string, unknown>,
-): { rows: OrderRecord[]; pagination: Pagination } {
-  const { page, limit, offset } = parsePagination(query, { defaultLimit: 100, maxLimit: 100 });
-  const sorted = store
-    .list()
+): Promise<{ rows: OrderRecord[]; pagination: Pagination }> {
+  const { page, limit, offset } = parsePagination(query, {
+    defaultPage: 1,
+    defaultLimit: 100,
+    maxLimit: 100,
+  });
+  const all = await store.list();
+  const sorted = all
     .slice()
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
   const total = sorted.length;

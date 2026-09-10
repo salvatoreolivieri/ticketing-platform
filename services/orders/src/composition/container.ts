@@ -1,27 +1,31 @@
-import { EventBus, generateCatalog, generateOrders, priceSnapshot } from "@ticketing/shared";
+import { EventBus } from "@ticketing/shared";
 import type { OrderRecord, TicketRecord } from "@ticketing/shared";
-import { InMemoryOrdersStore } from "../infrastructure/in-memory-store";
+import { createOrdersDb } from "../infrastructure/db/client";
+import { tierPrices } from "../infrastructure/db/schema";
+import { PostgresOrdersStore } from "../infrastructure/pg-orders-store";
 import { HttpInventoryClient } from "../infrastructure/http-inventory-client";
+import type { OrdersStore } from "../infrastructure/store";
 import type { InventoryClient } from "../application/ports";
 
 export type OrdersDeps = {
-  store: InMemoryOrdersStore;
+  store: OrdersStore;
   bus: EventBus;
   inventory: InventoryClient;
   priceByTier: Map<string, number>;
 };
 
-export function buildOrders(inventoryBaseUrl: string): OrdersDeps {
-  const catalog = generateCatalog();
-  const seedCount = Number(process.env.SEED_ORDERS ?? 50000);
-  const { orders, tickets } = generateOrders(catalog, seedCount);
+export async function buildOrders(inventoryBaseUrl: string): Promise<OrdersDeps> {
+  const { db } = createOrdersDb();
+  const store = new PostgresOrdersStore(db);
 
-  const store = new InMemoryOrdersStore(orders, tickets);
+  // Tier prices are static reference data — load the snapshot once at startup.
+  const priceRows = await db.select().from(tierPrices);
+  const priceByTier = new Map(priceRows.map((r) => [r.tierId, r.price] as const));
+
   const bus = new EventBus();
-  const priceByTier = priceSnapshot(catalog);
 
-  // Event-driven projection: OrderPlaced -> a Ticket exists.
-  bus.on("OrderPlaced", (e) => {
+  // Event-driven projection: OrderPlaced -> a Ticket row exists.
+  bus.on("OrderPlaced", async (e) => {
     const ticket: TicketRecord = {
       id: `tkt_${String(e.orderId)}`,
       orderId: String(e.orderId),
@@ -29,7 +33,7 @@ export function buildOrders(inventoryBaseUrl: string): OrdersDeps {
       tierId: String(e.tierId),
       quantity: Number(e.quantity),
     };
-    store.addTicket(ticket);
+    await store.addTicket(ticket);
     console.log("[orders] OrderPlaced", e.orderId, "-> ticket", ticket.id);
   });
 

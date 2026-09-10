@@ -12,7 +12,7 @@ import type {
   TierDto,
   VenueDto,
 } from "../domain/types";
-import type { CatalogRepository } from "../infrastructure/in-memory-repository";
+import type { CatalogRepository } from "../infrastructure/repository";
 
 function toTier(t: TierRecord): TierDto {
   return {
@@ -24,15 +24,21 @@ function toTier(t: TierRecord): TierDto {
   };
 }
 
-export function getEventDetail(repo: CatalogRepository, id: string): EventDto {
-  const event = repo.getEvent(id);
+export async function getEventDetail(
+  repo: CatalogRepository,
+  id: string,
+): Promise<EventDto> {
+  const event = await repo.getEvent(id);
   if (!event) throw new NotFoundError(`Event ${id} not found`);
-  const venue = repo.getVenue(event.venueId);
-  const organizer = repo.getOrganizer(event.organizerId);
+
+  const [venue, organizer, tiers] = await Promise.all([
+    repo.getVenue(event.venueId),
+    repo.getOrganizer(event.organizerId),
+    repo.getTiersForEvent(id),
+  ]);
   if (!venue) throw new NotFoundError(`Venue ${event.venueId} not found`);
   if (!organizer)
     throw new NotFoundError(`Organizer ${event.organizerId} not found`);
-  const tiers = repo.getTiersForEvent(id) ?? [];
 
   return {
     id: event.id,
@@ -44,45 +50,48 @@ export function getEventDetail(repo: CatalogRepository, id: string): EventDto {
     organizerId: event.organizerId,
     venue: { name: venue.name, address: venue.address },
     organizer: { name: organizer.name },
-    tiers: tiers.map(toTier),
+    tiers: (tiers ?? []).map(toTier),
   };
 }
 
-export function getVenue(repo: CatalogRepository, id: string): VenueDto {
-  const venue = repo.getVenue(id);
+export async function getVenue(
+  repo: CatalogRepository,
+  id: string,
+): Promise<VenueDto> {
+  const venue = await repo.getVenue(id);
   if (!venue) throw new NotFoundError(`Venue ${id} not found`);
   return { id: venue.id, name: venue.name, address: venue.address };
 }
 
-export function getOrganizer(
+export async function getOrganizer(
   repo: CatalogRepository,
   id: string,
-): OrganizerDto {
-  const organizer = repo.getOrganizer(id);
+): Promise<OrganizerDto> {
+  const organizer = await repo.getOrganizer(id);
   if (!organizer) throw new NotFoundError(`Organizer ${id} not found`);
   return { id: organizer.id, name: organizer.name };
 }
 
-export function getEventTiers(
+export async function getEventTiers(
   repo: CatalogRepository,
   eventId: string,
-): TierDto[] {
-  const tiers = repo.getTiersForEvent(eventId);
+): Promise<TierDto[]> {
+  const tiers = await repo.getTiersForEvent(eventId);
   if (!tiers) throw new NotFoundError(`Event ${eventId} not found`);
   return tiers.map(toTier);
 }
 
-export function listEvents(
+export async function listEvents(
   repo: CatalogRepository,
   query: Record<string, unknown>,
-): { rows: EventListRowDto[]; pagination: Pagination } {
+): Promise<{ rows: EventListRowDto[]; pagination: Pagination }> {
   const { page, limit, offset } = parsePagination(query, {
     defaultPage: 1,
     defaultLimit: 20,
     maxLimit: 100,
   });
 
-  let events = repo.allEvents();
+  let events = await repo.allEvents();
 
   if (query.city !== undefined) {
     const city = String(query.city).toLowerCase();
@@ -108,7 +117,7 @@ export function listEvents(
   const pageEvents = events.slice(offset, offset + limit);
 
   // One batched read for the whole page instead of one per row (N+1).
-  const tiersByEvent = repo.getTiersForEvents(pageEvents.map((e) => e.id));
+  const tiersByEvent = await repo.getTiersForEvents(pageEvents.map((e) => e.id));
 
   const rows = pageEvents.map<EventListRowDto>((e) => {
     const tiers = tiersByEvent.get(e.id) ?? [];

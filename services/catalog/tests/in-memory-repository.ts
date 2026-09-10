@@ -6,22 +6,13 @@ import type {
   TierRecord,
   VenueRecord,
 } from "@ticketing/shared";
+import type { CatalogRepository } from "../src/infrastructure/repository";
 
-export interface CatalogRepository {
-  getEvent(id: string): EventRecord | undefined;
-  getVenue(id: string): VenueRecord | undefined;
-  getOrganizer(id: string): OrganizerRecord | undefined;
-  /** Returns undefined when the event itself is unknown; [] when it has no tiers. */
-  getTiersForEvent(eventId: string): TierRecord[] | undefined;
-  /**
-   * Batch variant of getTiersForEvent — one read for many events, so list
-   * endpoints don't fan out into N per-row reads. Unknown eventIds are simply
-   * absent from the returned map (known events with no tiers map to []).
-   */
-  getTiersForEvents(eventIds: string[]): Map<string, TierRecord[]>;
-  allEvents(): EventRecord[];
-}
-
+/**
+ * In-memory CatalogRepository — a test fake. The running service uses
+ * PostgresCatalogRepository; this exists only to keep the unit suite fast and
+ * database-free.
+ */
 export class InMemoryCatalogRepository implements CatalogRepository {
   private readonly events = new Map<string, EventRecord>();
   private readonly venues = new Map<string, VenueRecord>();
@@ -43,28 +34,28 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     }
   }
 
-  getEvent(id: string): EventRecord | undefined {
+  async getEvent(id: string): Promise<EventRecord | undefined> {
     recordRead("getEvent");
     return this.events.get(id);
   }
 
-  getVenue(id: string): VenueRecord | undefined {
+  async getVenue(id: string): Promise<VenueRecord | undefined> {
     recordRead("getVenue");
     return this.venues.get(id);
   }
 
-  getOrganizer(id: string): OrganizerRecord | undefined {
+  async getOrganizer(id: string): Promise<OrganizerRecord | undefined> {
     recordRead("getOrganizer");
     return this.organizers.get(id);
   }
 
-  getTiersForEvent(eventId: string): TierRecord[] | undefined {
+  async getTiersForEvent(eventId: string): Promise<TierRecord[] | undefined> {
     recordRead("getTiersForEvent");
     if (!this.events.has(eventId)) return undefined;
     return this.tiersByEvent.get(eventId) ?? [];
   }
 
-  getTiersForEvents(eventIds: string[]): Map<string, TierRecord[]> {
+  async getTiersForEvents(eventIds: string[]): Promise<Map<string, TierRecord[]>> {
     recordRead("getTiersForEvents");
     const out = new Map<string, TierRecord[]>();
     for (const id of eventIds) {
@@ -73,7 +64,7 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     return out;
   }
 
-  allEvents(): EventRecord[] {
+  async allEvents(): Promise<EventRecord[]> {
     recordRead("allEvents");
     return this.eventOrder.map((id) => this.events.get(id)!);
   }

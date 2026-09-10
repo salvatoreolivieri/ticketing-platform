@@ -6,11 +6,11 @@ import {
   requireString,
 } from "@ticketing/shared";
 import type { EventBus, OrderRecord } from "@ticketing/shared";
-import type { InMemoryOrdersStore } from "../infrastructure/in-memory-store";
+import type { OrdersStore } from "../infrastructure/store";
 import type { InventoryClient } from "./ports";
 
 export type CreateOrderDeps = {
-  store: InMemoryOrdersStore;
+  store: OrdersStore;
   bus: EventBus;
   inventory: InventoryClient;
   priceByTier: Map<string, number>;
@@ -51,8 +51,8 @@ export async function createOrder(
     createdAt,
   };
 
-  deps.store.add(order);
-  deps.bus.publish({
+  await deps.store.add(order);
+  await deps.bus.publish({
     type: "OrderPlaced",
     orderId,
     eventId,

@@ -1,24 +1,19 @@
-import { EventBus, generateCatalog } from "@ticketing/shared";
-import { InMemoryInventoryStore } from "../infrastructure/in-memory-store";
+import { EventBus } from "@ticketing/shared";
+import { createInventoryDb } from "../infrastructure/db/client";
+import { PostgresInventoryStore } from "../infrastructure/pg-store";
+import type { InventoryStore } from "../infrastructure/store";
 
 export type InventoryDeps = {
-  store: InMemoryInventoryStore;
+  store: InventoryStore;
   bus: EventBus;
   /** Hold lifetime before lazy release. Omitted → reserve-tickets' 10-min default. */
   holdTtlMs?: number;
 };
 
-/** Seeds live availability from the deterministic catalog's tiers. */
+/** Wires the Inventory store to inventory_db (availability + holds live there). */
 export function buildInventory(holdTtlMs?: number): InventoryDeps {
-  const { tiers } = generateCatalog();
-  const store = new InMemoryInventoryStore(
-    tiers.map((t) => ({
-      tierId: t.id,
-      eventId: t.eventId,
-      quantityTotal: t.quantityTotal,
-      quantityRemaining: t.quantityRemaining,
-    })),
-  );
+  const { db } = createInventoryDb();
+  const store = new PostgresInventoryStore(db);
 
   const bus = new EventBus();
   bus.on("SeatsReserved", (e) =>
