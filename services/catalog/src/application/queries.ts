@@ -105,21 +105,24 @@ export function listEvents(
     );
 
   const total = events.length;
-  const rows = events
-    .slice(offset, offset + limit)
-    .map<EventListRowDto>((e) => {
-      const tiers = repo.getTiersForEvent(e.id) ?? [];
-      const lowest = tiers.reduce(
-        (min, t) => Math.min(min, t.price),
-        Number.POSITIVE_INFINITY,
-      );
-      return {
-        id: e.id,
-        title: e.title,
-        startsAt: e.startsAt,
-        tier: { price: Number.isFinite(lowest) ? lowest : 0 },
-      };
-    });
+  const pageEvents = events.slice(offset, offset + limit);
+
+  // One batched read for the whole page instead of one per row (N+1).
+  const tiersByEvent = repo.getTiersForEvents(pageEvents.map((e) => e.id));
+
+  const rows = pageEvents.map<EventListRowDto>((e) => {
+    const tiers = tiersByEvent.get(e.id) ?? [];
+    const lowest = tiers.reduce(
+      (min, t) => Math.min(min, t.price),
+      Number.POSITIVE_INFINITY,
+    );
+    return {
+      id: e.id,
+      title: e.title,
+      startsAt: e.startsAt,
+      tier: { price: Number.isFinite(lowest) ? lowest : 0 },
+    };
+  });
 
   return { rows, pagination: buildPagination(page, limit, total) };
 }

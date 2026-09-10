@@ -13,6 +13,12 @@ export interface CatalogRepository {
   getOrganizer(id: string): OrganizerRecord | undefined;
   /** Returns undefined when the event itself is unknown; [] when it has no tiers. */
   getTiersForEvent(eventId: string): TierRecord[] | undefined;
+  /**
+   * Batch variant of getTiersForEvent — one read for many events, so list
+   * endpoints don't fan out into N per-row reads. Unknown eventIds are simply
+   * absent from the returned map (known events with no tiers map to []).
+   */
+  getTiersForEvents(eventIds: string[]): Map<string, TierRecord[]>;
   allEvents(): EventRecord[];
 }
 
@@ -56,6 +62,15 @@ export class InMemoryCatalogRepository implements CatalogRepository {
     recordRead("getTiersForEvent");
     if (!this.events.has(eventId)) return undefined;
     return this.tiersByEvent.get(eventId) ?? [];
+  }
+
+  getTiersForEvents(eventIds: string[]): Map<string, TierRecord[]> {
+    recordRead("getTiersForEvents");
+    const out = new Map<string, TierRecord[]>();
+    for (const id of eventIds) {
+      if (this.events.has(id)) out.set(id, this.tiersByEvent.get(id) ?? []);
+    }
+    return out;
   }
 
   allEvents(): EventRecord[] {

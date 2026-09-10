@@ -73,6 +73,7 @@ describe("Catalog", () => {
       getVenue: () => undefined,
       getOrganizer: () => undefined,
       getTiersForEvent: () => undefined,
+      getTiersForEvents: () => new Map(),
       allEvents: () => [],
     };
     const res = await request(createCatalogApp(throwing)).get("/api/v1/events/evt_00001");
