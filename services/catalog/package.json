@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "main": "./src/server.ts",
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/infrastructure/db/seed.ts"
+  },
   "dependencies": {
     "@ticketing/shared": "*",
     "cors": "^2.8.6",

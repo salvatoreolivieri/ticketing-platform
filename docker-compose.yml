@@ -1,0 +1,132 @@
+# Full local stack: Postgres + the five services, each built from the
+# Dockerfile it owns (services/<name>/Dockerfile). Every service build uses the
+# repo root as context so the workspace lockfile and the shared package resolve.
+#
+# Inside this network services reach each other by name (http://catalog:4001)
+# and Postgres at postgres:5432. Host-run tooling (npm run db:migrate / db:seed)
+# reaches the same Postgres at localhost:5433.
+#
+# One Postgres instance hosts three isolated databases — one per service — so
+# the physical layer honors the shared-nothing ownership the services already
+# have in code (see ADR_0004). Each service connects only to its own database
+# with its own owner role.
+#
+# Usage:
+#   npm run up           # build + start the whole stack
+#   npm run db:migrate   # apply Drizzle migrations   (host → localhost:5433)
+#   npm run db:seed      # load the deterministic seed (host → localhost:5433)
+#   npm run down         # stop everything
+#   npm run logs         # tail all services
+
+name: ticketing-platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ticketing-postgres
+    restart: unless-stopped
+    environment:
+      # Bootstrap superuser. The per-service roles/databases are created by the
+      # init script below on first boot (empty volume only).
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      # Host 5433 to avoid clashing with any Postgres already on 5432.
+      # Container port stays 5432; in-network services use postgres:5432.
+      - "5433:5432"
+    volumes:
+      - ticketing-pgdata:/var/lib/postgresql/data
+      # *.sql / *.sh here run once, in filename order, when the data dir is empty.
+      - ./scripts/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  catalog:
+    build:
+      context: .
+      dockerfile: services/catalog/Dockerfile
+    restart: unless-stopped
+    environment:
+      CATALOG_PORT: 4001
+      CATALOG_DATABASE_URL: postgres://catalog_user:catalog_pw@postgres:5432/catalog_db
+    ports:
+      - "4001:4001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  inventory:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    restart: unless-stopped
+    environment:
+      INVENTORY_PORT: 4002
+      INVENTORY_DATABASE_URL: postgres://inventory_user:inventory_pw@postgres:5432/inventory_db
+    ports:
+      - "4002:4002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  orders:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    restart: unless-stopped
+    environment:
+      ORDERS_PORT: 4003
+      ORDERS_DATABASE_URL: postgres://orders_user:orders_pw@postgres:5432/orders_db
+      INVENTORY_URL: http://inventory:4002
+    ports:
+      - "4003:4003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inventory:
+        condition: service_started
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    restart: unless-stopped
+    environment:
+      GATEWAY_PORT: 4000
+      CATALOG_URL: http://catalog:4001
+      INVENTORY_URL: http://inventory:4002
+    ports:
+      - "4000:4000"
+    depends_on:
+      catalog:
+        condition: service_started
+      inventory:
+        condition: service_started
+
+  docs:
+    build:
+      context: .
+      dockerfile: services/docs/Dockerfile
+    restart: unless-stopped
+    environment:
+      DOCS_PORT: 4004
+      CATALOG_URL: http://catalog:4001
+      INVENTORY_URL: http://inventory:4002
+      ORDERS_URL: http://orders:4003
+    ports:
+      - "4004:4004"
+    depends_on:
+      catalog:
+        condition: service_started
+      inventory:
+        condition: service_started
+      orders:
+        condition: service_started
+
+volumes:
+  ticketing-pgdata:
+    name: ticketing-pgdata

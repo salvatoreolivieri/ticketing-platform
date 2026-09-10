@@ -1,0 +1,9 @@
+# Build context is the repo root. Keep host-only and heavy paths out of the
+# image so `npm ci` installs cleanly from the lockfile instead of inheriting
+# the host's node_modules.
+**/node_modules
+**/dist
+.git
+*.log
+.env
+scratchpad
